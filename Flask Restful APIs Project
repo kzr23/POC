@@ -1,0 +1,48 @@
+from flask import Flask, request, jsonify
+app = Flask(__name__)
+
+users = [
+    {"id": 1, "name": "Khizar", "email": "mhkzr@gmail.com", "role": "admin", "active": True},
+    {"id": 2, "name": "Rahman", "email": "rahman@gmail.com", "role": "user", "active": True}
+]
+
+def mask_user_details(user):
+    return {key: (value if key != "email" else "****@****.com") for key, value in user.items()}
+
+@app.route('/users/all', methods=['GET'])
+def get_users():
+    return jsonify([mask_user_details(user) for user in users]), 200
+
+@app.route('/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    user = next((user for user in users if user["id"] == user_id), None)
+    if user:
+        return jsonify(mask_user_details(user)), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
+
+@app.route('/users', methods=['POST'])
+def new_user():
+    new_user = request.get_json()
+    new_user["id"] = len(users) + 1
+    users.append(new_user)
+    return jsonify(mask_user_details(new_user)), 201
+
+@app.route('/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    user = next((user for user in users if user["id"] == user_id), None)
+    if user:
+        data = request.get_json()
+        user.update(data)
+        return jsonify(mask_user_details(user)), 200
+    else:
+        return jsonify({"error": "User does not exist"}), 404
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    global users
+    users = [user for user in users if user["id"] != user_id]
+    return jsonify({'message': 'User deleted'}), 200
+
+if __name__ == '__main__':
+    app.run(debug=True)
